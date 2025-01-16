@@ -30,6 +30,7 @@ from engine.clients.weaviate import (
     WeaviateSearcher,
     WeaviateUploader,
 )
+from engine.clients.scylladb import ScyllaDbConfigurator, ScyllaDbSearcher, ScyllaDbUploader
 
 ENGINE_CONFIGURATORS = {
     "qdrant": QdrantConfigurator,
@@ -39,6 +40,7 @@ ENGINE_CONFIGURATORS = {
     "opensearch": OpenSearchConfigurator,
     "redis": RedisConfigurator,
     "pgvector": PgVectorConfigurator,
+    "scylladb": ScyllaDbConfigurator,
 }
 
 ENGINE_UPLOADERS = {
@@ -49,6 +51,7 @@ ENGINE_UPLOADERS = {
     "opensearch": OpenSearchUploader,
     "redis": RedisUploader,
     "pgvector": PgVectorUploader,
+    "scylladb": ScyllaDbUploader,
 }
 
 ENGINE_SEARCHERS = {
@@ -59,6 +62,7 @@ ENGINE_SEARCHERS = {
     "opensearch": OpenSearchSearcher,
     "redis": RedisSearcher,
     "pgvector": PgVectorSearcher,
+    "scylladb": ScyllaDbSearcher,
 }
 
 

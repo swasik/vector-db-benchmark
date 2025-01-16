@@ -1,0 +1,28 @@
+version: '3.7'
+
+services:
+  scylla:
+    container_name: scylladb-vs-benchmark
+    image: scylladb/scylla:6.2.2
+    network_mode: "bridge"
+    # sysctls:
+    #   - fs.aio-max-nr=1122572
+    # run: 
+    #   sudo sh -c "echo 1122572 >> /proc/sys/fs/aio-max-nr"
+    ports:
+      - 9042:9042
+    logging:
+      driver: "json-file"
+      options:
+        max-file: 1
+        max-size: 10m
+    deploy:
+      resources:
+        limits:
+          memory: 12Gb
+    command: --overprovisioned 0
+    volumes:
+      - scylla-data:/var/lib/scylla
+
+volumes:
+  scylla-data:
