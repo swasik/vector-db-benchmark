@@ -26,7 +26,7 @@ class ScyllaDbUploader(BaseUploader):
     def init_client(cls, host, distance, connection_params, upload_params):
         cls.config = get_db_config(host, connection_params)
         cls.keyspace_name = cls.config["keyspace_name"]
-        cls.table_name = cls.config["table_name"]
+        cls.data_table_name = cls.config["data_table_name"]
 
         cls.cluster = Cluster([cls.config["host"]])
         cls.conn = cls.cluster.connect()
@@ -43,7 +43,7 @@ class ScyllaDbUploader(BaseUploader):
 
         cls.conn.set_keyspace(cls.keyspace_name)
         insert_query = cls.conn.prepare(f"""
-            INSERT INTO {cls.table_name} (id, description, embedding) VALUES (?, ?, ?)
+            INSERT INTO {cls.data_table_name} (id, description, embedding) VALUES (?, ?, ?)
         """)
         execute_concurrent_with_args(cls.conn, insert_query, data, concurrency=100)
 
