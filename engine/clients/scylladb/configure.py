@@ -80,8 +80,9 @@ class ScyllaDbConfigurator(BaseConfigurator):
         self.conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {self.indexes_table_name} (
                 id INT PRIMARY KEY,
-                indexed_elements_reserved INT,
                 indexed_elements_count INT,
+                param_m INT,
+                param_ef_construct INT,
                 canceled BOOLEAN
             );
         """)

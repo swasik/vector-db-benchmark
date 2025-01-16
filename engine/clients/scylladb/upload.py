@@ -27,10 +27,20 @@ class ScyllaDbUploader(BaseUploader):
         cls.config = get_db_config(host, connection_params)
         cls.keyspace_name = cls.config["keyspace_name"]
         cls.data_table_name = cls.config["data_table_name"]
+        cls.indexes_table_name = cls.config["indexes_table_name"]
+        cls.param_m = upload_params["hnsw_config"]["m"]
+        cls.param_ef_construct = upload_params["hnsw_config"]["ef_construct"]
 
         cls.cluster = Cluster([cls.config["host"]])
         cls.conn = cls.cluster.connect()
         print("ScyllaDB connection created")
+
+        cls.conn.set_keyspace(cls.keyspace_name)
+        cls.conn.execute(f"""
+            INSERT INTO {cls.indexes_table_name} 
+                (id, indexed_elements_count, param_m, param_ef_construct, canceled)
+            VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, false);
+        """)
 
         cls.upload_params = upload_params
 
