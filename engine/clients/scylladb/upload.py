@@ -38,8 +38,11 @@ class ScyllaDbUploader(BaseUploader):
         cls.conn.set_keyspace(cls.keyspace_name)
         cls.conn.execute(f"""
             INSERT INTO {cls.indexes_table_name} 
-                (id, indexed_elements_count, param_m, param_ef_construct, canceled)
-            VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, false);
+                (id, indexed_elements_count, param_m, param_ef_construct, dimension, canceled)
+            VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 96, false);
+        """)
+        cls.insert_query = cls.conn.prepare(f"""
+            INSERT INTO {cls.data_table_name} (id, description, embedding) VALUES (?, ?, ?)
         """)
 
         cls.upload_params = upload_params
@@ -47,15 +50,17 @@ class ScyllaDbUploader(BaseUploader):
 
     @classmethod
     def upload_batch(cls, batch: List[Record]):
-        data = []
-        for record in batch:
-            data.append((record.id, "", record.vector))
+        try:
+            data = []
+            for record in batch:
+                data.append((record.id, "", record.vector))
 
-        cls.conn.set_keyspace(cls.keyspace_name)
-        insert_query = cls.conn.prepare(f"""
-            INSERT INTO {cls.data_table_name} (id, description, embedding) VALUES (?, ?, ?)
-        """)
-        execute_concurrent_with_args(cls.conn, insert_query, data, concurrency=100)
+            insert_query = cls.conn.prepare(f"""
+                INSERT INTO {cls.data_table_name} (id, description, embedding) VALUES (?, ?, ?)
+            """)
+            execute_concurrent_with_args(cls.conn, insert_query, data, concurrency=100)
+        except Exception as e:
+            print(e)
 
 
     @classmethod

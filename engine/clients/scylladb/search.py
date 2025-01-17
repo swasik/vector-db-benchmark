@@ -1,3 +1,6 @@
+import itertools
+import threading
+import time
 from typing import List, Tuple
 
 import numpy as np
@@ -12,34 +15,63 @@ from engine.clients.scylladb.parser import ScyllaDbConditionParser
 
 class ScyllaDbSearcher(BaseSearcher):
     conn = None
-    cur = None
     distance = None
     search_params = {}
     parser = ScyllaDbConditionParser()
+    counter = itertools.count()
+    lock = threading.Lock()
+
+
+    @classmethod
+    def next(cls):
+        with  cls.lock:
+            return next(cls.counter)
 
     @classmethod
     def init_client(cls, host, distance, connection_params: dict, search_params: dict):
-        # cls.conn = psycopg.connect(**get_db_config(host, connection_params))
-        # register_vector(cls.conn)
-        cls.cur = cls.conn.cursor()
-        cls.cur.execute(f"SET hnsw.ef_search = {search_params['config']['hnsw_ef']}")
+        cls.config = get_db_config(host, connection_params)
+        cls.keyspace_name = cls.config["keyspace_name"]
+        cls.queries_table_name = cls.config["queries_table_name"]
+
+        cls.cluster = Cluster([cls.config["host"]])
+        cls.conn = cls.cluster.connect()
+        cls.conn.set_keyspace(cls.keyspace_name)
+
+        ef = search_params["config"]["hnsw_ef"]
         if distance == Distance.COSINE:
-            cls.query = "SELECT id, embedding <=> %s AS _score FROM items ORDER BY _score LIMIT %s"
-        elif distance == Distance.L2:
-            cls.query = "SELECT id, embedding <-> %s AS _score FROM items ORDER BY _score LIMIT %s"
+            cls.insert_query = cls.conn.prepare(f"""
+                INSERT INTO {cls.queries_table_name} 
+                    (id, embedding, param_ef_search, result_computed, result_ids, result_scores) 
+                VALUES (?, ?, {ef}, false, NULL, NULL);
+            """)
         else:
             raise NotImplementedError(f"Unsupported distance metric {cls.distance}")
+        
+        cls.status_query = cls.conn.prepare(f"""
+            SELECT id FROM {cls.queries_table_name} 
+                WHERE id = ? AND result_computed = true
+            ALLOW FILTERING;
+        """)
+        cls.results_query = cls.conn.prepare(f"""
+            SELECT result_ids, result_scores FROM {cls.queries_table_name} 
+            WHERE id = ?
+        """)
 
     @classmethod
     def search_one(cls, query: Query, top) -> List[Tuple[int, float]]:
         # TODO: Use query.metaconditions for datasets with filtering
-        cls.cur.execute(
-            cls.query, (np.array(query.vector), top), binary=True, prepare=True
-        )
-        return cls.cur.fetchall()
+        id = cls.next()
+        cls.conn.execute(cls.insert_query.bind([id, query.vector]))
+        while True:
+            time.sleep(0.001)
+            if any(cls.conn.execute(cls.status_query.bind([id]))):
+                break
+
+        result = cls.conn.execute(cls.results_query.bind([id]))[0]
+        if not any(result):
+            return []
+        return zip(result.result_ids, result.result_scores)
 
     @classmethod
     def delete_client(cls):
-        if cls.cur:
-            cls.cur.close()
-            cls.conn.close()
+        cls.cluster.shutdown()

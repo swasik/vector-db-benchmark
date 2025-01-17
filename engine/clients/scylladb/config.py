@@ -14,5 +14,6 @@ def get_db_config(host, connection_params):
         "keyspace_name": "vector_benchmark",
         "data_table_name": "vector_items",
         "indexes_table_name": "vector_indexes",
+        "queries_table_name": "vector_queries",
         **connection_params,
     }

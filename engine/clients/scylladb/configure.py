@@ -15,6 +15,7 @@ class ScyllaDbConfigurator(BaseConfigurator):
         self.keyspace_name = self.config["keyspace_name"]
         self.data_table_name = self.config["data_table_name"]
         self.indexes_table_name = self.config["indexes_table_name"]
+        self.queries_table_name = self.config["queries_table_name"]
 
         self.cluster = Cluster([self.config["host"]])
         self.conn = self.cluster.connect()
@@ -38,6 +39,7 @@ class ScyllaDbConfigurator(BaseConfigurator):
 
     def clean(self):
         self.conn.execute(f"DROP TABLE IF EXISTS {self.keyspace_name}.{self.data_table_name};")
+        self.conn.execute(f"DROP TABLE IF EXISTS {self.keyspace_name}.{self.queries_table_name};")
         # TODO: uncommend after proper handling of vector types and indexes is implemented in CQL
         # As for now we cannot remove keyspace as it keeps information about indexes created in the past
         # self.conn.execute(f"DROP KEYSPACE IF EXISTS {self.keyspace_name};")
@@ -62,6 +64,8 @@ class ScyllaDbConfigurator(BaseConfigurator):
         if dataset.config.distance in [Distance.DOT, Distance.L2]:
             raise IncompatibilityError
 
+        print("Dataset config: ", dataset.config)
+
         self.conn.execute(f"""
             CREATE KEYSPACE IF NOT EXISTS {self.keyspace_name}
             WITH replication = {{ 'class': 'SimpleStrategy', 'replication_factor': 1 }};
@@ -83,10 +87,22 @@ class ScyllaDbConfigurator(BaseConfigurator):
                 indexed_elements_count INT,
                 param_m INT,
                 param_ef_construct INT,
+                dimension INT,
                 canceled BOOLEAN
             );
         """)
         print(f"Table '{self.indexes_table_name}' created (if not exists) in keyspace '{self.keyspace_name}'.")
+        self.conn.execute(f"""
+            CREATE TABLE IF NOT EXISTS {self.queries_table_name} (
+                id INT PRIMARY KEY,
+                embedding LIST<FLOAT>,
+                param_ef_search INT,
+                result_computed BOOLEAN,
+                result_ids LIST<INT>,
+                result_scores LIST<FLOAT>
+            );
+        """)
+        print(f"Table '{self.queries_table_name}' created (if not exists) in keyspace '{self.keyspace_name}'.")
 
 
     def delete_client(self):

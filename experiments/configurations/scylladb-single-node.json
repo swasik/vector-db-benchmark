@@ -7,6 +7,6 @@
         "search_params": [
           { "parallel": 8, "config": { "hnsw_ef": 128 } }
         ],
-        "upload_params": { "parallel": 16, "batch_size": 10000, "hnsw_config": { "m": 16, "ef_construct": 128 } }
+        "upload_params": { "parallel": 8, "batch_size": 10000, "hnsw_config": { "m": 16, "ef_construct": 128 } }
     }
 ]
