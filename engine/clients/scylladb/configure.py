@@ -97,6 +97,7 @@ class ScyllaDbConfigurator(BaseConfigurator):
                 id INT PRIMARY KEY,
                 embedding LIST<FLOAT>,
                 param_ef_search INT,
+                top_results_limit INT,
                 result_computed BOOLEAN,
                 result_ids LIST<INT>,
                 result_scores LIST<FLOAT>

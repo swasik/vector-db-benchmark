@@ -41,8 +41,8 @@ class ScyllaDbSearcher(BaseSearcher):
         if distance == Distance.COSINE:
             cls.insert_query = cls.conn.prepare(f"""
                 INSERT INTO {cls.queries_table_name} 
-                    (id, embedding, param_ef_search, result_computed, result_ids, result_scores) 
-                VALUES (?, ?, {ef}, false, NULL, NULL);
+                    (id, embedding, param_ef_search, top_results_limit, result_computed, result_ids, result_scores) 
+                VALUES (?, ?, {ef}, ?, false, NULL, NULL);
             """)
         else:
             raise NotImplementedError(f"Unsupported distance metric {cls.distance}")
@@ -61,7 +61,7 @@ class ScyllaDbSearcher(BaseSearcher):
     def search_one(cls, query: Query, top) -> List[Tuple[int, float]]:
         # TODO: Use query.metaconditions for datasets with filtering
         id = cls.next()
-        cls.conn.execute(cls.insert_query.bind([id, query.vector]))
+        cls.conn.execute(cls.insert_query.bind([id, query.vector, top]))
         while True:
             time.sleep(0.001)
             if any(cls.conn.execute(cls.status_query.bind([id]))):
