@@ -18,7 +18,6 @@ class ScyllaDbUploader(BaseUploader):
         Distance.COSINE: "vector_cosine_ops",
     }
     conn = None
-    cur = None
     upload_params = {}
 
 

@@ -19,7 +19,6 @@ class ScyllaDbConfigurator(BaseConfigurator):
 
         self.cluster = Cluster([self.config["host"]])
         self.conn = self.cluster.connect()
-        print("ScyllaDB connection created")
 
 
     def has_any_rows(self, table_name):
