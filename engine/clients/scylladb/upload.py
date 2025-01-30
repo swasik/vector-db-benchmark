@@ -60,12 +60,24 @@ class ScyllaDbUploader(BaseUploader):
     @classmethod
     def upload_batch(cls, batch: List[Record]):
         try:
-            data = []
+            not_processed_data = []
             for record in batch:
-                data.append((record.id, "", record.vector))
+                not_processed_data.append((record.id, "", record.vector))
+
+            while len(not_processed_data) > 0:
+                data = list(not_processed_data)
+                results = execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=100, raise_on_first_error=False)
+
+                not_processed_data = []
+                for i in range(len(results)):
+                    if not results[i][0]:
+                        not_processed_data.append(data[i])
+
+                if len(not_processed_data) > 0:
+                    print(f"Retrying {len(not_processed_data)} records")
 
             cls.conn.execute(cls.update_requested_count_query, [len(data)])
-            execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=100)
+
         except Exception as e:
             print(e)
 
