@@ -3,6 +3,8 @@ import threading
 import time
 from typing import List, Tuple
 
+from multiprocessing import Queue
+
 import numpy as np
 from cassandra.cluster import Cluster
 
@@ -12,23 +14,29 @@ from engine.base_client.search import BaseSearcher
 from engine.clients.scylladb.config import get_db_config
 from engine.clients.scylladb.parser import ScyllaDbConditionParser
 
+MAX_PROCESSES = 1000
 
 class ScyllaDbSearcher(BaseSearcher):
     conn = None
     distance = None
     search_params = {}
     parser = ScyllaDbConditionParser()
+    scylladb_id = 0
     counter = itertools.count()
-    lock = threading.Lock()
 
 
     @classmethod
     def next(cls):
-        with  cls.lock:
-            return next(cls.counter)
+        return next(cls.counter) * MAX_PROCESSES + cls.scylladb_id
 
     @classmethod
     def init_client(cls, host, distance, connection_params: dict, search_params: dict):
+        if "scylladb_ids" not in search_params:
+            queue = Queue()
+            for i in range(MAX_PROCESSES):
+                queue.put(i)
+            search_params["scylladb_ids"] = queue
+        cls.scylladb_id = search_params["scylladb_ids"].get()
         cls.config = get_db_config(host, connection_params)
         cls.keyspace_name = cls.config["keyspace_name"]
         cls.queries_table_name = cls.config["queries_table_name"]
