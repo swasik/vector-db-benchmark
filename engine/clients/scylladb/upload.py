@@ -66,7 +66,7 @@ class ScyllaDbUploader(BaseUploader):
 
             while len(not_processed_data) > 0:
                 data = list(not_processed_data)
-                results = execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=100, raise_on_first_error=False)
+                results = execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=50, raise_on_first_error=False)
 
                 not_processed_data = []
                 for i in range(len(results)):
@@ -93,7 +93,7 @@ class ScyllaDbUploader(BaseUploader):
             cls.conn.execute(f"""
                 INSERT INTO {cls.indexes_table_name} 
                     (id, indexed_elements_count, param_m, param_ef_construct, dimension, canceled)
-                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 96, false);
+                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 100, false);
             """)
             requested = cls.conn.execute(cls.get_requested_count_query)[0].requested_elements_count
             processed = cls.conn.execute(cls.get_processed_count_query)[0].indexed_elements_count
