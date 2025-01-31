@@ -17,5 +17,8 @@ def get_db_config(host, connection_params):
         "process_data_index_name": "vector_items_processed",
         "indexes_table_name": "vector_indexes",
         "queries_table_name": "vector_queries",
+        "usearch_host": "10.2.0.4",
+        "dimensions": 100,
+        "default_ef_search": 256,
         **connection_params,
     }

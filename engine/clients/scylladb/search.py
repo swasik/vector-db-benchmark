@@ -38,9 +38,11 @@ class ScyllaDbSearcher(BaseSearcher):
                 queue.put(i)
             search_params["scylladb_ids"] = queue
         cls.scylladb_id = search_params["scylladb_ids"].get()
+
         cls.config = get_db_config(host, connection_params)
         cls.keyspace_name = cls.config["keyspace_name"]
         cls.queries_table_name = cls.config["queries_table_name"]
+        cls.usearch_host = cls.config["usearch_host"]
 
         cls.cluster = Cluster([cls.config["host"]])
         cls.conn = cls.cluster.connect()
@@ -87,7 +89,7 @@ class ScyllaDbSearcher(BaseSearcher):
 
         request = json.dumps({'embeddings': query.vector, 'limit': top})
         try:
-            cls.conn.execute(cls.proxy_query.bind(['127.0.0.1', 6080, '/indexes/1/ann', request]))
+            cls.conn.execute(cls.proxy_query.bind([cls.usearch_host, 6080, '/indexes/1/ann', request]))
             response = None
         except Exception as err:
             lines = str(err).splitlines()

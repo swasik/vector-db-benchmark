@@ -30,6 +30,9 @@ class ScyllaDbUploader(BaseUploader):
         cls.data_table_name = cls.config["data_table_name"]
         cls.data_summary_table_name = cls.config["data_summary_table_name"]
         cls.indexes_table_name = cls.config["indexes_table_name"]
+        cls.dimensions = cls.config["dimensions"]
+        cls.default_ef_search = cls.config["default_ef_search"]
+
         cls.param_m = upload_params["hnsw_config"]["m"]
         cls.param_ef_construct = upload_params["hnsw_config"]["ef_construct"]
 
@@ -93,7 +96,7 @@ class ScyllaDbUploader(BaseUploader):
             cls.conn.execute(f"""
                 INSERT INTO {cls.indexes_table_name} 
                     (id, indexed_elements_count, param_m, param_ef_construct, param_ef_search, dimension, canceled)
-                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 32, 100, false);
+                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, {cls.default_ef_search}, {cls.dimensions}, false);
             """)
             requested = cls.conn.execute(cls.get_requested_count_query).one().requested_elements_count
             processed = cls.conn.execute(cls.get_processed_count_query).one().indexed_elements_count
