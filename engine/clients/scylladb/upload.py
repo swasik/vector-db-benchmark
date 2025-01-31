@@ -95,12 +95,12 @@ class ScyllaDbUploader(BaseUploader):
                     (id, indexed_elements_count, param_m, param_ef_construct, dimension, canceled)
                 VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 100, false);
             """)
-            requested = cls.conn.execute(cls.get_requested_count_query)[0].requested_elements_count
-            processed = cls.conn.execute(cls.get_processed_count_query)[0].indexed_elements_count
+            requested = cls.conn.execute(cls.get_requested_count_query).one().requested_elements_count
+            processed = cls.conn.execute(cls.get_processed_count_query).one().indexed_elements_count
             while requested != processed:
                 sleep(1)
-                requested = cls.conn.execute(cls.get_requested_count_query)[0].requested_elements_count
-                processed = cls.conn.execute(cls.get_processed_count_query)[0].indexed_elements_count
+                requested = cls.conn.execute(cls.get_requested_count_query).one().requested_elements_count
+                processed = cls.conn.execute(cls.get_processed_count_query).one().indexed_elements_count
                 print(f"\rdbg: requested {requested}, processed {processed}", end="")
             print(f"\rdbg: requested {requested}, processed {processed}")
         except Exception as e:
