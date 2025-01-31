@@ -75,7 +75,7 @@ class ScyllaDbSearcher(BaseSearcher):
             if any(cls.conn.execute(cls.status_query.bind([id]))):
                 break
 
-        result = cls.conn.execute(cls.results_query.bind([id]))[0]
+        result = cls.conn.execute(cls.results_query.bind([id])).one()
         if not any(result):
             return []
         return zip(result.result_keys, result.result_scores)
