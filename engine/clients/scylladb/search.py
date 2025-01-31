@@ -1,8 +1,9 @@
 import itertools
 import threading
 import time
+import itertools
+import json
 from typing import List, Tuple
-
 from multiprocessing import Queue
 
 import numpy as np
@@ -64,21 +65,45 @@ class ScyllaDbSearcher(BaseSearcher):
             SELECT result_keys, result_scores FROM {cls.queries_table_name} 
             WHERE id = ?
         """)
+        cls.proxy_query = cls.conn.prepare(f"""
+            INSERT INTO system.vector_queries (host, port, path, body )
+            VALUES (?, ?, ?, ?)
+        """)
 
     @classmethod
     def search_one(cls, query: Query, top) -> List[Tuple[int, float]]:
         # TODO: Use query.metaconditions for datasets with filtering
-        id = cls.next()
-        cls.conn.execute(cls.insert_query.bind([id, query.vector, top]))
-        while True:
-            time.sleep(0.001)
-            if any(cls.conn.execute(cls.status_query.bind([id]))):
-                break
+        #id = cls.next()
+        #cls.conn.execute(cls.insert_query.bind([id, query.vector, top]))
+        #while True:
+        #    time.sleep(0.001)
+        #    if any(cls.conn.execute(cls.status_query.bind([id]))):
+        #        break
 
-        result = cls.conn.execute(cls.results_query.bind([id])).one()
-        if not any(result):
+        #result = cls.conn.execute(cls.results_query.bind([id])).one()
+        #if not any(result):
+        #    return []
+        #return zip(result.result_keys, result.result_scores)
+
+        request = json.dumps({'embeddings': query.vector, 'limit': top})
+        try:
+            cls.conn.execute(cls.proxy_query.bind(['127.0.0.1', 6080, '/indexes/1/ann', request]))
+            response = None
+        except Exception as err:
+            lines = str(err).splitlines()
+            lines = itertools.dropwhile(lambda line: not line.startswith('------'), lines)
+            lines = itertools.dropwhile(lambda line: line.startswith('------'), lines)
+            lines = itertools.takewhile(lambda line: not line.startswith('------'), lines)
+            response = '\n'.join(lines).strip()
+
+        try:
+            response = json.loads(response)
+        except json.JSONDecodeError:
             return []
-        return zip(result.result_keys, result.result_scores)
+
+        if not any(response):
+            return []
+        return zip(response['keys'], response['distances'])
 
     @classmethod
     def delete_client(cls):
