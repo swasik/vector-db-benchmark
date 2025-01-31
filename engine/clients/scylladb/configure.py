@@ -100,6 +100,7 @@ class ScyllaDbConfigurator(BaseConfigurator):
                 indexed_elements_count INT,
                 param_m INT,
                 param_ef_construct INT,
+                param_ef_search INT,
                 dimension INT,
                 canceled BOOLEAN
             );

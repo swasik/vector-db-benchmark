@@ -92,8 +92,8 @@ class ScyllaDbUploader(BaseUploader):
         try:
             cls.conn.execute(f"""
                 INSERT INTO {cls.indexes_table_name} 
-                    (id, indexed_elements_count, param_m, param_ef_construct, dimension, canceled)
-                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 100, false);
+                    (id, indexed_elements_count, param_m, param_ef_construct, param_ef_search, dimension, canceled)
+                VALUES (1, 0, {cls.param_m}, {cls.param_ef_construct}, 32, 100, false);
             """)
             requested = cls.conn.execute(cls.get_requested_count_query).one().requested_elements_count
             processed = cls.conn.execute(cls.get_processed_count_query).one().indexed_elements_count
