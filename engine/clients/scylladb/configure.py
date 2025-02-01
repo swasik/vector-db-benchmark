@@ -1,6 +1,7 @@
 import time
-from cassandra.cluster import Cluster
+import cassandra
 
+from cassandra.cluster import Cluster
 from benchmark.dataset import Dataset
 from engine.base_client import IncompatibilityError
 from engine.base_client.configure import BaseConfigurator
@@ -19,6 +20,7 @@ class ScyllaDbConfigurator(BaseConfigurator):
         self.indexes_table_name = self.config["indexes_table_name"]
         self.queries_table_name = self.config["queries_table_name"]
 
+        print(f"Using {cassandra.__version__} version of Cassandra driver")
         self.cluster = Cluster([self.config["host"]])
         self.conn = self.cluster.connect()
 
@@ -66,8 +68,6 @@ class ScyllaDbConfigurator(BaseConfigurator):
     def recreate(self, dataset: Dataset, collection_params):
         if dataset.config.distance in [Distance.DOT, Distance.L2]:
             raise IncompatibilityError
-
-        print("Dataset config: ", dataset.config)
 
         self.conn.execute(f"""
             CREATE KEYSPACE IF NOT EXISTS {self.keyspace_name}

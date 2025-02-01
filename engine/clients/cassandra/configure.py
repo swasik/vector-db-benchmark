@@ -1,6 +1,6 @@
-import time
-from cassandra.cluster import Cluster
+import cassandra
 
+from cassandra.cluster import Cluster
 from benchmark.dataset import Dataset
 from engine.base_client import IncompatibilityError
 from engine.base_client.configure import BaseConfigurator
@@ -15,6 +15,7 @@ class CassandraConfigurator(BaseConfigurator):
         self.keyspace_name = self.config["keyspace_name"]
         self.data_table_name = self.config["data_table_name"]
 
+        print(f"Using {cassandra.__version__} version of Cassandra driver")
         self.cluster = Cluster([self.config["host"]])
         self.conn = self.cluster.connect()
 
@@ -34,7 +35,7 @@ class CassandraConfigurator(BaseConfigurator):
         self.conn.execute(f"""
             CREATE TABLE IF NOT EXISTS {self.data_table_name} (
                 id BIGINT PRIMARY KEY,
-                embedding VECTOR<FLOAT, 100>,
+                embedding VECTOR<FLOAT, {dataset.config.vector_size}>,
             );
         """)
         print(f"Table '{self.data_table_name}' created (if not exists).")
