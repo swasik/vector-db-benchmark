@@ -31,6 +31,7 @@ from engine.clients.weaviate import (
     WeaviateUploader,
 )
 from engine.clients.scylladb import ScyllaDbConfigurator, ScyllaDbSearcher, ScyllaDbUploader
+from engine.clients.cassandra import CassandraConfigurator, CassandraSearcher, CassandraUploader
 
 ENGINE_CONFIGURATORS = {
     "qdrant": QdrantConfigurator,
@@ -41,6 +42,7 @@ ENGINE_CONFIGURATORS = {
     "redis": RedisConfigurator,
     "pgvector": PgVectorConfigurator,
     "scylladb": ScyllaDbConfigurator,
+    "cassandra": CassandraConfigurator,
 }
 
 ENGINE_UPLOADERS = {
@@ -52,6 +54,7 @@ ENGINE_UPLOADERS = {
     "redis": RedisUploader,
     "pgvector": PgVectorUploader,
     "scylladb": ScyllaDbUploader,
+    "cassandra": CassandraUploader,
 }
 
 ENGINE_SEARCHERS = {
@@ -63,6 +66,7 @@ ENGINE_SEARCHERS = {
     "redis": RedisSearcher,
     "pgvector": PgVectorSearcher,
     "scylladb": ScyllaDbSearcher,
+    "cassandra": CassandraSearcher,
 }
 
 
