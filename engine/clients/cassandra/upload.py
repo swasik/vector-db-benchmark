@@ -15,11 +15,6 @@ from time import sleep
 
 
 class CassandraUploader(BaseUploader):
-    DISTANCE_MAPPING = {
-        Distance.L2: "EUCLIDEAN",
-        Distance.COSINE: "COSINE",
-        Distance.DOT: "DOT_PRODUCT",
-    }
     conn = None
     upload_params = {}
 
@@ -29,7 +24,6 @@ class CassandraUploader(BaseUploader):
         cls.config = get_db_config(host, connection_params)
         cls.keyspace_name = cls.config["keyspace_name"]
         cls.data_table_name = cls.config["data_table_name"]
-        cls.index_name = cls.config["index_name"]
 
         cls.cluster = Cluster([cls.config["host"]])
         cls.conn = cls.cluster.connect()
@@ -58,18 +52,6 @@ class CassandraUploader(BaseUploader):
     @classmethod
     def post_upload(cls, distance):
         try:
-            hnsw_distance_type = cls.DISTANCE_MAPPING[distance]
-        except KeyError:
-            raise IncompatibilityError(f"Unsupported distance metric: {distance}")
-
-        try:
-            cls.conn.execute(f"""
-                CREATE INDEX IF NOT EXISTS {cls.index_name}
-                    ON {cls.keyspace_name}.{cls.data_table_name}(embedding) USING 'sai'
-                    WITH OPTIONS = {{ 'similarity_function': '{hnsw_distance_type}' }};
-            """)
-            print(f"Index '{cls.index_name}' creation scheduled.")
-            
             while True:
                 try:
                     cls.conn.execute(f"""
@@ -79,6 +61,7 @@ class CassandraUploader(BaseUploader):
                     """)
                     break
                 except Exception as e:
+                    # TODO: Catch only INDEX_NOT_AVAILABLE error
                     print(e)
                     time.sleep(10)
             print(f"Index '{cls.index_name}' created (if not exists).")
