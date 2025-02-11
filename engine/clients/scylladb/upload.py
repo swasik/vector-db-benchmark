@@ -3,6 +3,7 @@ from typing import List
 import numpy as np
 from cassandra.cluster import Cluster
 from cassandra.concurrent import execute_concurrent_with_args
+from cassandra.query import BatchStatement, ConsistencyLevel
 
 from dataset_reader.base_reader import Record
 from engine.base_client import IncompatibilityError
@@ -38,12 +39,11 @@ class ScyllaDbUploader(BaseUploader):
 
         cls.cluster = Cluster([cls.config["host"]])
         cls.conn = cls.cluster.connect()
-        print("ScyllaDB connection created")
 
         cls.conn.set_keyspace(cls.keyspace_name)
 
         cls.insert_query = cls.conn.prepare(f"""
-            INSERT INTO {cls.data_table_name} (id, description, embedding, processed) VALUES (?, ?, ?, FALSE)
+            INSERT INTO {cls.data_table_name} (id, description, embedding, processed) VALUES (?, "", ?, FALSE)
         """)
         cls.update_requested_count_query = cls.conn.prepare(f"""
             UPDATE {cls.data_summary_table_name}
@@ -63,23 +63,28 @@ class ScyllaDbUploader(BaseUploader):
     @classmethod
     def upload_batch(cls, batch: List[Record]):
         try:
-            not_processed_data = []
+            batch = BatchStatement(consistency_level=ConsistencyLevel.ANY)
             for record in batch:
-                not_processed_data.append((record.id, "", record.vector))
+                batch.add(cls.insert_query, (record.id, record.vector))
+            cls.conn.execute(batch)
 
-            while len(not_processed_data) > 0:
-                data = list(not_processed_data)
-                results = execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=50, raise_on_first_error=False)
+            # not_processed_data = []
+            # for record in batch:
+            #     not_processed_data.append((record.id, "", record.vector))
 
-                not_processed_data = []
-                for i in range(len(results)):
-                    if not results[i][0]:
-                        not_processed_data.append(data[i])
+            # while len(not_processed_data) > 0:
+            #     data = list(not_processed_data)
+            #     results = execute_concurrent_with_args(cls.conn, cls.insert_query, data, concurrency=50, raise_on_first_error=False)
 
-                if len(not_processed_data) > 0:
-                    print(f"Retrying {len(not_processed_data)} records")
+            #     not_processed_data = []
+            #     for i in range(len(results)):
+            #         if not results[i][0]:
+            #             not_processed_data.append(data[i])
 
-            cls.conn.execute(cls.update_requested_count_query, [len(data)])
+            #     if len(not_processed_data) > 0:
+            #         print(f"Retrying {len(not_processed_data)} records")
+
+            # cls.conn.execute(cls.update_requested_count_query, [len(data)])
 
         except Exception as e:
             print(e)
