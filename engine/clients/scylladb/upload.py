@@ -43,7 +43,7 @@ class ScyllaDbUploader(BaseUploader):
         cls.conn.set_keyspace(cls.keyspace_name)
 
         cls.insert_query = cls.conn.prepare(f"""
-            INSERT INTO {cls.data_table_name} (id, description, embedding, processed) VALUES (?, "", ?, FALSE)
+            INSERT INTO {cls.data_table_name} (id, description, embedding, processed) VALUES (?, '', ?, FALSE)
         """)
         cls.update_requested_count_query = cls.conn.prepare(f"""
             UPDATE {cls.data_summary_table_name}
@@ -63,10 +63,11 @@ class ScyllaDbUploader(BaseUploader):
     @classmethod
     def upload_batch(cls, batch: List[Record]):
         try:
-            batch = BatchStatement(consistency_level=ConsistencyLevel.ANY)
+            batch_statement = BatchStatement(consistency_level=ConsistencyLevel.ANY)
             for record in batch:
-                batch.add(cls.insert_query, (record.id, record.vector))
-            cls.conn.execute(batch)
+                batch_statement.add(cls.insert_query, (record.id, record.vector))
+            cls.conn.execute(batch_statement)
+            cls.conn.execute(cls.update_requested_count_query, [len(batch)])
 
             # not_processed_data = []
             # for record in batch:
